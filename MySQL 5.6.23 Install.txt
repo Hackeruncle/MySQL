@@ -1,0 +1,465 @@
+1.Download and Check MD5
+[root@sht-sgmhadoopnn-01 ~]# cd /usr/local
+[root@sht-sgmhadoopnn-01 local]# wget https://downloads.mariadb.com/archives/mysql-5.6/mysql-5.6.23-linux-glibc2.5-x86_64.tar.gz
+[root@sht-sgmhadoopnn-01 local]# wget https://downloads.mariadb.com/archives/mysql-5.6/mysql-5.6.23-linux-glibc2.5-x86_64.tar.gz.md5
+
+[root@sht-sgmhadoopnn-01 local]# vi mysql-5.6.23-linux-glibc2.5-x86_64.tar.gz.md5
+61affe944eff55fcf51b31e67f25dc10  mysql-5.6.23-linux-glibc2.5-x86_64.tar.gz
+
+[root@sht-sgmhadoopnn-01 local]# md5sum mysql-5.6.23-linux-glibc2.5-x86_64.tar.gz
+61affe944eff55fcf51b31e67f25dc10  mysql-5.6.23-linux-glibc2.5-x86_64.tar.gz
+
+2.Check isnot install
+[root@sht-sgmhadoopnn-01 local]# ps -ef|grep mysqld
+root      2493  2423  0 19:48 pts/3    00:00:00 grep mysqld
+[root@sht-sgmhadoopnn-01 local]# rpm -qa |grep -i mysql
+
+3.tar and mv
+[root@sht-sgmhadoopnn-01 local]# tar xzvf mysql-5.6.23-linux-glibc2.5-x86_64.tar.gz
+[root@sht-sgmhadoopnn-01 local]# mv mysql-5.6.23-linux-glibc2.5-x86_64 mysql
+
+4.Create group and user 
+[root@sht-sgmhadoopnn-01 local]# groupadd -g 101 dba
+[root@sht-sgmhadoopnn-01 local]# useradd -u 514 -g dba -G root -d /usr/local/mysql mysqladmin
+[root@sht-sgmhadoopnn-01 local]# id mysqladmin
+uid=514(mysqladmin) gid=101(dba) groups=101(dba),0(root)
+[root@sht-sgmhadoopnn-01 local]# passwd mysqladmin
+Changing password for user mysqladmin.
+New UNIX password: 
+BAD PASSWORD: it is too simplistic/systematic
+Retype new UNIX password: 
+passwd: all authentication tokens updated successfully.
+[root@sht-sgmhadoopnn-01 local]# 
+
+## if user mysqladmin is existing,please execute the following command of usermod.
+##[root@sht-sgmhadoopnn-01 local]# usermod -u 514 -g dba -G root -d /usr/local/mysql mysqladmin #
+
+## copy 环境变量配置文件至mysqladmin用户的home目录中,为了以下步骤配置个人环境变量
+[root@sht-sgmhadoopnn-01 local]# cp /etc/skel/.* /usr/local/mysql  ###important
+cp: omitting directory `/etc/skel/.'
+cp: omitting directory `/etc/skel/..'
+cp: omitting directory `/etc/skel/.mozilla'
+
+5.Create /etc/my.cnf(640) 
+#defualt start: /etc/my.cnf->/etc/mysql/my.cnf->SYSCONFDIR/my.cnf->$MYSQL_HOME/my.cnf-> --defaults-extra-file->~/my.cnf 
+[root@sht-sgmhadoopnn-01 mysql]# cd /etc/
+[root@sht-sgmhadoopnn-01 etc]# touch my.cnf
+[root@sht-sgmhadoopnn-01 etc]# vi my.cnf
+[client]
+port            = 3306
+socket          = /usr/local/mysql/data/mysql.sock
+ 
+[mysqld]
+port            = 3306
+socket          = /usr/local/mysql/data/mysql.sock
+
+skip-external-locking
+key_buffer_size = 256M
+sort_buffer_size = 2M
+read_buffer_size = 2M
+read_rnd_buffer_size = 4M
+query_cache_size= 32M
+max_allowed_packet = 16M
+myisam_sort_buffer_size=128M
+tmp_table_size=32M
+
+table_open_cache = 512
+thread_cache_size = 8
+wait_timeout = 86400
+interactive_timeout = 86400
+max_connections = 600
+
+# Try number of CPU's*2 for thread_concurrency
+thread_concurrency = 32
+
+#isolation level and default engine 
+default-storage-engine = INNODB
+transaction-isolation = READ-COMMITTED
+
+server-id  = 1
+basedir     = /usr/local/mysql
+datadir     = /usr/local/mysql/data
+pid-file     = /usr/local/mysql/data/hostname.pid
+
+#open performance schema
+log-warnings
+sysdate-is-now
+
+binlog_format = MIXED
+log_bin_trust_function_creators=1
+log-error  = /usr/local/mysql/data/hostname.err
+log-bin=/usr/local/mysql/arch/mysql-bin
+#other logs
+#general_log =1
+#general_log_file  = /usr/local/mysql/data/general_log.err
+#slow_query_log=1
+#slow_query_log_file=/usr/local/mysql/data/slow_log.err
+
+#for replication slave
+#log-slave-updates 
+#sync_binlog = 1
+
+#for innodb options 
+innodb_data_home_dir = /usr/local/mysql/data/
+innodb_data_file_path = ibdata1:500M:autoextend
+innodb_log_group_home_dir = /usr/local/mysql/arch
+innodb_log_files_in_group = 2
+innodb_log_file_size = 200M
+
+innodb_buffer_pool_size = 2048M
+innodb_additional_mem_pool_size = 50M
+innodb_log_buffer_size = 16M
+
+innodb_lock_wait_timeout = 100
+#innodb_thread_concurrency = 0
+innodb_flush_log_at_trx_commit = 1
+innodb_locks_unsafe_for_binlog=1
+
+#innodb io features: add for mysql5.5.8
+performance_schema
+innodb_read_io_threads=4
+innodb-write-io-threads=4
+innodb-io-capacity=200
+#purge threads change default(0) to 1 for purge
+innodb_purge_threads=1
+innodb_use_native_aio=on
+
+#case-sensitive file names and separate tablespace
+innodb_file_per_table = 1
+lower_case_table_names=1
+
+[mysqldump]
+quick
+max_allowed_packet = 16M
+
+[mysql]
+no-auto-rehash
+
+[mysqlhotcopy]
+interactive-timeout
+
+[myisamchk]
+key_buffer_size = 256M
+sort_buffer_size = 256M
+read_buffer = 2M
+write_buffer = 2M
+
+
+6.chown and chmod privileges and try first install
+[root@sht-sgmhadoopnn-01 local]# chown  mysqladmin:dba /etc/my.cnf 
+[root@sht-sgmhadoopnn-01 local]# chmod  640 /etc/my.cnf  
+[root@sht-sgmhadoopnn-01 etc]# ll my.cnf
+-rw-r----- 1 mysqladmin dba 2201 Aug 25 23:09 my.cnf
+
+[root@sht-sgmhadoopnn-01 local]# chown -R mysqladmin:dba /usr/local/mysql
+[root@sht-sgmhadoopnn-01 local]# chmod -R 755 /usr/local/mysql 
+[root@sht-sgmhadoopnn-01 local]# su - mysqladmin 
+[mysqladmin@sht-sgmhadoopnn-01 ~]$ pwd
+/usr/local/mysql
+[mysqladmin@sht-sgmhadoopnn-01 ~]$ mkdir arch backup
+[mysqladmin@sht-sgmhadoopnn-01 ~]$ scripts/mysql_install_db ###import
+Installing MySQL system tables..../bin/mysqld: error while loading shared libraries: libaio.so.1: cannot open shared object file: No such file or directory #缺少libaio.so 包
+
+###see version
+[root@sht-sgmhadoopnn-01 local]# cat /proc/version
+Linux version 2.6.18-164.11.1.el5 (mockbuild@builder10.centos.org) (gcc version 4.1.2 20080704 (Red Hat 4.1.2-46)) #1 SMP Wed Jan 20 07:32:21 EST 2010
+
+[root@sht-sgmhadoopnn-01 local]# rpm -qa |grep gcc
+libgcc-4.1.2-46.el5_4.2
+libgcc-4.1.2-46.el5_4.2
+[root@sht-sgmhadoopnn-01 local]# yum -y install libaio
+Loaded plugins: fastestmirror
+Determining fastest mirrors
+base-tn54                                                                                              | 1.1 kB     00:00     
+tn-appv1                                                                                               |  951 B     00:00     
+updates-tn54                                                                                           |  951 B     00:00     
+Setting up Install Process
+Resolving Dependencies
+--> Running transaction check
+---> Package libaio.i386 0:0.3.106-3.2 set to be updated
+---> Package libaio.x86_64 0:0.3.106-3.2 set to be updated
+--> Finished Dependency Resolution
+
+Dependencies Resolved
+
+==============================================================================================================================
+ Package                    Arch                       Version                            Repository                     Size
+==============================================================================================================================
+Installing:
+ libaio                     i386                       0.3.106-3.2                        base-tn54                      19 k
+ libaio                     x86_64                     0.3.106-3.2                        base-tn54                      19 k
+
+Transaction Summary
+==============================================================================================================================
+Install      2 Package(s)         
+Update       0 Package(s)         
+Remove       0 Package(s)         
+
+Total download size: 38 k
+Downloading Packages:
+(1/2): libaio-0.3.106-3.2.i386.rpm                                                                     |  19 kB     00:00     
+(2/2): libaio-0.3.106-3.2.x86_64.rpm                                                                   |  19 kB     00:00     
+------------------------------------------------------------------------------------------------------------------------------
+Total                                                                                         452 kB/s |  38 kB     00:00     
+Running rpm_check_debug
+Running Transaction Test
+Finished Transaction Test
+Transaction Test Succeeded
+Running Transaction
+  Installing     : libaio                                                                                                 1/2 
+  Installing     : libaio                                                                                                 2/2 
+
+Installed:
+  libaio.i386 0:0.3.106-3.2                                    libaio.x86_64 0:0.3.106-3.2                                   
+
+Complete!
+
+7.Again  install
+[mysqladmin@sht-sgmhadoopnn-01 ~]$ scripts/mysql_install_db  --user=mysqladmin --basedir=/usr/local/mysql --datadir=/usr/local/mysql/data 
+Installing MySQL system tables...2015-08-25 22:49:02 0 [Warning] TIMESTAMP with implicit DEFAULT value is deprecated. Please use --explicit_defaults_for_timestamp server option (see documentation for more details).
+2015-08-25 22:49:02 11713 [Note] InnoDB: Using atomics to ref count buffer pool pages
+2015-08-25 22:49:02 11713 [Note] InnoDB: The InnoDB memory heap is disabled
+2015-08-25 22:49:02 11713 [Note] InnoDB: Mutexes and rw_locks use GCC atomic builtins
+2015-08-25 22:49:02 11713 [Note] InnoDB: Memory barrier is not used
+2015-08-25 22:49:02 11713 [Note] InnoDB: Compressed tables use zlib 1.2.3
+2015-08-25 22:49:02 11713 [Note] InnoDB: Using Linux native AIO
+2015-08-25 22:49:02 11713 [Note] InnoDB: Using CPU crc32 instructions
+2015-08-25 22:49:02 11713 [Note] InnoDB: Initializing buffer pool, size = 128.0M
+2015-08-25 22:49:02 11713 [Note] InnoDB: Completed initialization of buffer pool
+2015-08-25 22:49:02 11713 [Note] InnoDB: The first specified data file ./ibdata1 did not exist: a new database to be created!
+2015-08-25 22:49:02 11713 [Note] InnoDB: Setting file ./ibdata1 size to 12 MB
+2015-08-25 22:49:02 11713 [Note] InnoDB: Database physically writes the file full: wait...
+2015-08-25 22:49:03 11713 [Note] InnoDB: Setting log file ./ib_logfile101 size to 48 MB
+2015-08-25 22:49:07 11713 [Note] InnoDB: Setting log file ./ib_logfile1 size to 48 MB
+2015-08-25 22:49:12 11713 [Note] InnoDB: Renaming log file ./ib_logfile101 to ./ib_logfile0
+2015-08-25 22:49:12 11713 [Warning] InnoDB: New log files created, LSN=45781
+2015-08-25 22:49:12 11713 [Note] InnoDB: Doublewrite buffer not found: creating new
+2015-08-25 22:49:12 11713 [Note] InnoDB: Doublewrite buffer created
+2015-08-25 22:49:12 11713 [Note] InnoDB: 128 rollback segment(s) are active.
+2015-08-25 22:49:12 11713 [Warning] InnoDB: Creating foreign key constraint system tables.
+2015-08-25 22:49:12 11713 [Note] InnoDB: Foreign key constraint system tables created
+2015-08-25 22:49:12 11713 [Note] InnoDB: Creating tablespace and datafile system tables.
+2015-08-25 22:49:12 11713 [Note] InnoDB: Tablespace and datafile system tables created.
+2015-08-25 22:49:12 11713 [Note] InnoDB: Waiting for purge to start
+2015-08-25 22:49:12 11713 [Note] InnoDB: 5.6.23 started; log sequence number 0
+2015-08-25 22:49:13 11713 [Note] Binlog end
+2015-08-25 22:49:13 11713 [Note] InnoDB: FTS optimize thread exiting.
+2015-08-25 22:49:13 11713 [Note] InnoDB: Starting shutdown...
+2015-08-25 22:49:15 11713 [Note] InnoDB: Shutdown completed; log sequence number 1625977
+OK
+
+Filling help tables...2015-08-25 22:49:15 0 [Warning] TIMESTAMP with implicit DEFAULT value is deprecated. Please use --explicit_defaults_for_timestamp server option (see documentation for more details).
+2015-08-25 22:49:15 11735 [Note] InnoDB: Using atomics to ref count buffer pool pages
+2015-08-25 22:49:15 11735 [Note] InnoDB: The InnoDB memory heap is disabled
+2015-08-25 22:49:15 11735 [Note] InnoDB: Mutexes and rw_locks use GCC atomic builtins
+2015-08-25 22:49:15 11735 [Note] InnoDB: Memory barrier is not used
+2015-08-25 22:49:15 11735 [Note] InnoDB: Compressed tables use zlib 1.2.3
+2015-08-25 22:49:15 11735 [Note] InnoDB: Using Linux native AIO
+2015-08-25 22:49:15 11735 [Note] InnoDB: Using CPU crc32 instructions
+2015-08-25 22:49:15 11735 [Note] InnoDB: Initializing buffer pool, size = 128.0M
+2015-08-25 22:49:15 11735 [Note] InnoDB: Completed initialization of buffer pool
+2015-08-25 22:49:15 11735 [Note] InnoDB: Highest supported file format is Barracuda.
+2015-08-25 22:49:15 11735 [Note] InnoDB: 128 rollback segment(s) are active.
+2015-08-25 22:49:15 11735 [Note] InnoDB: Waiting for purge to start
+2015-08-25 22:49:15 11735 [Note] InnoDB: 5.6.23 started; log sequence number 1625977
+2015-08-25 22:49:15 11735 [Note] Binlog end
+2015-08-25 22:49:15 11735 [Note] InnoDB: FTS optimize thread exiting.
+2015-08-25 22:49:15 11735 [Note] InnoDB: Starting shutdown...
+2015-08-25 22:49:17 11735 [Note] InnoDB: Shutdown completed; log sequence number 1625987
+OK
+
+To start mysqld at boot time you have to copy
+support-files/mysql.server to the right place for your system
+
+PLEASE REMEMBER TO SET A PASSWORD FOR THE MySQL root USER !
+To do so, start the server, then issue the following commands:
+
+  ./bin/mysqladmin -u root password 'new-password'
+  ./bin/mysqladmin -u root -h sht-sgmhadoopnn-01 password 'new-password'
+
+Alternatively you can run:
+
+  ./bin/mysql_secure_installation
+
+which will also give you the option of removing the test
+databases and anonymous user created by default.  This is
+strongly recommended for production servers.
+
+See the manual for more instructions.
+
+You can start the MySQL daemon with:
+
+  cd . ; ./bin/mysqld_safe &
+
+You can test the MySQL daemon with mysql-test-run.pl
+
+  cd mysql-test ; perl mysql-test-run.pl
+
+Please report any problems at http://bugs.mysql.com/
+
+The latest information about MySQL is available on the web at
+
+  http://www.mysql.com
+
+Support MySQL by buying support/licenses at http://shop.mysql.com
+New default config file was created as ./my.cnf and
+will be used by default by the server when you start it.
+You may edit this file to change server settings
+
+WARNING: Default config file /etc/my.cnf exists on the system
+This file will be read by default by the MySQL server
+If you do not want to use this, either remove it, or use the
+--defaults-file argument to mysqld_safe when starting the server
+
+8.Configure mysql service and boot auto start
+[root@sht-sgmhadoopnn-01 ~]# cd /usr/local/mysql
+#将服务文件拷贝到init.d下，并重命名为mysql
+[root@sht-sgmhadoopnn-01 mysql]# cp support-files/mysql.server /etc/rc.d/init.d/mysql 
+#赋予可执行权限
+[root@sht-sgmhadoopnn-01 mysql]# chmod +x /etc/rc.d/init.d/mysql
+#删除服务
+[root@sht-sgmhadoopnn-01 mysql]# chkconfig --del mysql
+#添加服务
+[root@sht-sgmhadoopnn-01 mysql]# chkconfig --add mysql
+[root@sht-sgmhadoopnn-01 mysql]# chkconfig --level 345 mysql on
+[root@sht-sgmhadoopnn-01 mysql]# vi /etc/rc.local
+#!/bin/sh
+#
+# This script will be executed *after* all the other init scripts.
+# You can put your own initialization stuff in here if you don't
+# want to do the full Sys V style init stuff.
+
+touch /var/lock/subsys/local
+
+su - mysqladmin -c "/etc/init.d/mysql start --federated"
+
+"/etc/rc.local" 9L, 278C written
+
+
+9.Start mysql and to view process and listening
+
+[root@sht-sgmhadoopnn-01 mysql]# su - mysqladmin
+[mysqladmin@sht-sgmhadoopnn-01 ~]$ pwd
+/usr/local/mysql
+[mysqladmin@sht-sgmhadoopnn-01 ~]$ rm -rf my.cnf
+[mysqladmin@sht-sgmhadoopnn-01 ~]$ mysqld_safe &
+[1] 11802
+[mysqladmin@sht-sgmhadoopnn-01 ~]$ 150825 22:53:38 mysqld_safe Logging to '/usr/local/mysql/data/hostname.err'.
+150825 22:53:38 mysqld_safe Starting mysqld daemon with databases from /usr/local/mysql/data/
+150825 22:53:39 mysqld_safe mysqld from pid file /usr/local/mysql/data/hostname.pid ended
+[mysqladmin@sht-sgmhadoopnn-01 ~]$ 
+
+
+
+[mysqladmin@sht-sgmhadoopnn-01 ~]$ ps -ef|grep mysqld
+514       6247  6219  0 17:30 pts/1    00:00:00 /bin/sh /usr/local/mysql/bin/mysqld_safe
+514       6902  6247  2 17:30 pts/1    00:00:01 /usr/local/mysql/bin/mysqld --basedir=/usr/local/mysql --datadir=/usr/local/mysql/data --plugin-dir=/usr/local/mysql/lib/plugin --log-error=/usr/local/mysql/data/hostname.err --pid-file=/usr/local/mysql/data/hostname.pid --socket=/usr/local/mysql/data/mysql.sock --port=3306
+514       6927  6219  0 17:31 pts/1    00:00:00 grep mysqld
+
+[mysqladmin@sht-sgmhadoopnn-01 ~]$ netstat -tulnp | grep mysql
+(Not all processes could be identified, non-owned process info
+ will not be shown, you would have to be root to see it all.)
+tcp        0      0 :::3306                     :::*                        LISTEN      11541/mysqld        
+
+[root@sht-sgmhadoopnn-01 local]# service mysql status
+MySQL running (21507)                                      [  OK  ]
+
+10.Login mysql 
+[mysqladmin@sht-sgmhadoopnn-01 ~]$ mysql
+Welcome to the MySQL monitor.  Commands end with ; or \g.
+Your MySQL connection id is 1
+Server version: 5.6.23-log MySQL Community Server (GPL)
+
+Copyright (c) 2000, 2015, Oracle and/or its affiliates. All rights reserved.
+
+Oracle is a registered trademark of Oracle Corporation and/or its
+affiliates. Other names may be trademarks of their respective
+owners.
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+mysql> show databases;
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| mysql              |
+| performance_schema |
+| test               |
++--------------------+
+4 rows in set (0.00 sec)
+11.Update password and Purge user
+mysql> use mysql
+Database changed
+mysql> update user set password=password('password') where user='root';
+Query OK, 4 rows affected (0.00 sec)
+Rows matched: 4  Changed: 4  Warnings: 0
+mysql> select host,user,password from user;
++----------------+------+-------------------------------------------+
+| host           | user | password                                  |
++----------------+------+-------------------------------------------+
+| localhost      | root | *6340BE3C15D246B0D74BAF3F135915ED19E0069F |
+| sht-sgmhadoopnn-01 | root | *6340BE3C15D246B0D74BAF3F135915ED19E0069F |
+| 127.0.0.1      | root | *6340BE3C15D246B0D74BAF3F135915ED19E0069F |
+| ::1            | root | *6340BE3C15D246B0D74BAF3F135915ED19E0069F |
+| localhost      |      |                                           |
+| sht-sgmhadoopnn-01 |      |                                           |
++----------------+------+-------------------------------------------+
+6 rows in set (0.00 sec)
+
+mysql> delete from user where user='';
+mysql> select host,user,password from user;
++----------------+------+-------------------------------------------+
+| host           | user | password                                  |
++----------------+------+-------------------------------------------+
+| localhost      | root | *6340BE3C15D246B0D74BAF3F135915ED19E0069F |
+| sht-sgmhadoopnn-01 | root | *6340BE3C15D246B0D74BAF3F135915ED19E0069F |
+| 127.0.0.1      | root | *6340BE3C15D246B0D74BAF3F135915ED19E0069F |
+| ::1            | root | *6340BE3C15D246B0D74BAF3F135915ED19E0069F |
++----------------+------+-------------------------------------------+
+4 rows in set (0.00 sec)
+mysql> flush privileges;
+
+12.Configure .bash_profile
+[mysqladmin@sht-sgmhadoopnn-01 ~]$ cat .bash_profile 
+# .bash_profile
+# Get the aliases and functions
+
+if [ -f ~/.bashrc ]; then
+        . ~/.bashrc
+fi
+
+# User specific environment and startup programs
+MYSQL_BASE=/usr/local/mysql
+export MYSQL_BASE
+PATH=$PATH:${MYSQL_BASE}/bin:/usr/kerberos/bin:/opt/bin:/bin:/usr/bin:/usr/local/bin:/usr/bin/X11:/usr/X11R6/bin:/usr/local/mysql
+export PATH
+
+unset USERNAME
+
+#stty erase ^H
+set umask to 022
+umask 022
+PS1=`uname -n`":"'$USER'":"'$PWD'":>"; export PS1
+
+alias l="ls -ltr"
+alias la="ls -la"
+alias d="df -lk"
+#alias rm="rm -i"
+alias bg="ps -aef|grep mysql"
+alias base="cd /usr/local/mysql"
+alias bin="cd //usr/local/mysql/bin"
+alias dba="cd /usr/local/mysql/dba"
+alias sh="cd /usr/local/mysql/dba/sh"
+alias sql="cd /usr/local/mysql/dba/sql"
+alias config="cd /usr/local/mysql/dba/config"
+alias dbalog="cd /usr/local/mysql/dba/log"
+alias arch="cd /usr/local/mysql/arch"
+alias data="cd /usr/local/mysql/data"
+## endendend
+
+
+Remark:
+	Error1: File '/usr/local/mysql/arch/mysql-bin.index' not found (Errcode: 13)
+   		test2.localdomain:mysqladmin:/usr/local/mysql/arch:>chmod 755 *
+   		test2.localdomain:mysqladmin:/usr/local/mysql/arch:>chown –R mysqladmin:dba *
