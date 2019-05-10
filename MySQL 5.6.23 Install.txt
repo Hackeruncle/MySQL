@@ -1,13 +1,6 @@
-1.Download and Check MD5
+1.Upload tar
 [root@sht-sgmhadoopnn-01 ~]# cd /usr/local
-[root@sht-sgmhadoopnn-01 local]# wget https://downloads.mariadb.com/archives/mysql-5.6/mysql-5.6.23-linux-glibc2.5-x86_64.tar.gz
-[root@sht-sgmhadoopnn-01 local]# wget https://downloads.mariadb.com/archives/mysql-5.6/mysql-5.6.23-linux-glibc2.5-x86_64.tar.gz.md5
-
-[root@sht-sgmhadoopnn-01 local]# vi mysql-5.6.23-linux-glibc2.5-x86_64.tar.gz.md5
-61affe944eff55fcf51b31e67f25dc10  mysql-5.6.23-linux-glibc2.5-x86_64.tar.gz
-
-[root@sht-sgmhadoopnn-01 local]# md5sum mysql-5.6.23-linux-glibc2.5-x86_64.tar.gz
-61affe944eff55fcf51b31e67f25dc10  mysql-5.6.23-linux-glibc2.5-x86_64.tar.gz
+[root@sht-sgmhadoopnn-01 local]# rz #通过百度云下载到本地，rz命令上传mysql-5.6.23-linux-glibc2.5-x86_64.tar.gz
 
 2.Check isnot install
 [root@sht-sgmhadoopnn-01 local]# ps -ef|grep mysqld
