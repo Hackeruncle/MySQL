@@ -238,10 +238,10 @@ owners.
 
 Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
 
-mysql> alter user root@localhost identified by 'syncdb123!';
+mysql> alter user root@localhost identified by 'ruozedata';
 Query OK, 0 rows affected (0.05 sec)
 
-mysql> GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' IDENTIFIED BY 'syncdb123!' ;
+mysql> GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' IDENTIFIED BY 'ruozedata' ;
 Query OK, 0 rows affected, 1 warning (0.02 sec)
 
 
@@ -254,7 +254,7 @@ Bye
 12.重启
 hadoop39.ruoze:mysqladmin:/usr/local/mysql:> service mysql restart
 
-hadoop39.ruoze:mysqladmin:/usr/local/mysql/data:>mysql -uroot -psyncdb123!
+hadoop39.ruoze:mysqladmin:/usr/local/mysql/data:>mysql -uroot -pruozedata
 mysql: [Warning] Using a password on the command line interface can be insecure.
 Welcome to the MySQL monitor.  Commands end with ; or \g.
 Your MySQL connection id is 2
